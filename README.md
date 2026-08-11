@@ -84,6 +84,12 @@ BookWise is localized for Sri Lanka:
 - Date format: **DD/MM/YYYY**
 - Phone format: **+94 XX XXX XXXX**
 
-## License
+## Copyright & Usage
 
-MIT
+© 2026 Inkithai Meiyalagan. All rights reserved.
+
+This repository is provided for **viewing and portfolio purposes only**. The source code, architecture, design, and implementation are proprietary and may not be copied, reused, modified, distributed, republished, or used to create another product or commercial service without explicit written permission from the author.
+
+This project is under active development and is intended to be expanded into a commercial SaaS product. **Please do not copy, clone, or use this project as your own.**
+
+**No open-source license is granted for this repository.**
