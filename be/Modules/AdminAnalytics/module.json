@@ -1,0 +1,11 @@
+{
+    "name": "AdminAnalytics",
+    "alias": "adminanalytics",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\AdminAnalytics\\app\\Providers\\AdminAnalyticsServiceProvider"
+    ],
+    "files": []
+}

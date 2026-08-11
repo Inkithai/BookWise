@@ -1,0 +1,11 @@
+{
+    "name": "Purchases",
+    "alias": "purchases",
+    "description": "Accounts payable: vendors, supplier bills and payments integrated with the ledger.",
+    "keywords": [],
+    "priority": 12,
+    "providers": [
+        "Modules\\Purchases\\Providers\\PurchasesServiceProvider"
+    ],
+    "files": []
+}

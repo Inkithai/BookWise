@@ -1,0 +1,11 @@
+{
+    "name": "Banking",
+    "alias": "banking",
+    "description": "Bank and cash accounts, transactions and reconciliation with ledger integration.",
+    "keywords": [],
+    "priority": 11,
+    "providers": [
+        "Modules\\Banking\\Providers\\BankingServiceProvider"
+    ],
+    "files": []
+}

@@ -1,0 +1,11 @@
+{
+    "name": "GoogleAnalytics",
+    "alias": "googleanalytics",
+    "description": "Microsoft Clarity Analytics Module",
+    "keywords": ["clarity", "analytics", "google-analytics"],
+    "priority": 0,
+    "providers": [
+        "Modules\\GoogleAnalytics\\Providers\\GoogleAnalyticsServiceProvider"
+    ],
+    "files": []
+}

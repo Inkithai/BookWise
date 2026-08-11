@@ -1,0 +1,11 @@
+{
+    "name": "Analytics",
+    "alias": "analytics",
+    "description": "Analytics and Dashboard Statistics Module",
+    "keywords": ["analytics", "dashboard", "statistics"],
+    "priority": 0,
+    "providers": [
+        "Modules\\Analytics\\Providers\\AnalyticsServiceProvider"
+    ],
+    "files": []
+}

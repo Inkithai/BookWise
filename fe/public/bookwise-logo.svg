@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 48" fill="none">
+  <rect width="200" height="48" rx="8" fill="#0F766E"/>
+  <path d="M12 12h6c2.2 0 4 1.8 4 4s-1.8 4-4 4h-6v-8z" fill="#F0FDFA"/>
+  <path d="M12 20h7c2.5 0 4.5 2 4.5 4.5S21.5 29 19 29h-7v-9z" fill="#99F6E4"/>
+  <path d="M12 29h6c2.2 0 4 1.8 4 4s-1.8 4-4 4h-6v-8z" fill="#5EEAD4"/>
+  <text x="38" y="33" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" fill="#F0FDFA">BookWise</text>
+</svg>

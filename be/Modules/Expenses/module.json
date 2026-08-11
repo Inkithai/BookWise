@@ -1,0 +1,11 @@
+{
+    "name": "Expenses",
+    "alias": "expenses",
+    "description": "Business expense capture with ledger integration.",
+    "keywords": [],
+    "priority": 13,
+    "providers": [
+        "Modules\\Expenses\\Providers\\ExpensesServiceProvider"
+    ],
+    "files": []
+}

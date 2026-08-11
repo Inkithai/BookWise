@@ -1,0 +1,51 @@
+# ============================================================
+#  Account — multi-tenant Accounting & Bookkeeping SaaS
+#  Monorepo .gitignore (Laravel backend + Next.js frontend)
+# ============================================================
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/
+.fleet/
+/.nova
+.zed/
+.phpactor.json
+/auth.json
+debug.log
+
+# --- PHP / Laravel (be/) ---
+/be/vendor/
+/be/node_modules/
+/be/.env
+/be/.env.backup
+/be/.env.production
+/be/public/build/
+/be/public/hot
+/be/public/storage
+/be/storage/*.key
+/be/storage/pail/
+/be/storage/framework/cache/*.php
+/be/storage/framework/sessions/*.php
+/be/storage/framework/views/*.php
+/be/storage/logs/*.log
+/be/bootstrap/cache/*.php
+/be/.phpunit.result.cache
+/be/.phpunit.cache
+
+# --- Node / Next.js (fe/) ---
+/fe/node_modules/
+/fe/.next/
+/fe/out/
+/fe/build/
+/fe/coverage/
+/fe/.vercel
+/fe/next-env.d.ts
+/fe/.env*
+/fe/*.tsbuildinfo
+
+# --- shared caches ---
+.cache/
+.turbo/

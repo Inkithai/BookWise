@@ -1,0 +1,17 @@
+{
+    "User": true,
+    "Role": true,
+    "Common": true,
+    "CustomCRM": true,
+    "Invoice": true,
+    "Analytics": true,
+    "Payment": true,
+    "GoogleAnalytics": true,
+    "SuperAdmin": true,
+    "SuperAdminAnalytics": true,
+    "AdminAnalytics": true,
+    "Accounting": true,
+    "Banking": true,
+    "Purchases": true,
+    "Expenses": true
+}

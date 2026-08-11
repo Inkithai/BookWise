@@ -1,0 +1,15 @@
+{
+    "name": "SuperAdmin",
+    "alias": "superadmin",
+    "description": "Super Admin Analytics Module for managing all users and system analytics",
+    "keywords": [
+        "super-admin",
+        "analytics",
+        "user-management"
+    ],
+    "priority": 0,
+    "providers": [
+        "Modules\\SuperAdmin\\Providers\\SuperAdminServiceProvider"
+    ],
+    "files": []
+}

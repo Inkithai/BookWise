@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/customcrm",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\CustomCRM\\": "app/",
+            "Modules\\CustomCRM\\Database\\Factories\\": "database/factories/",
+            "Modules\\CustomCRM\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\CustomCRM\\Tests\\": "tests/"
+        }
+    }
+}

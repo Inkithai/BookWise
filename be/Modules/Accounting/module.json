@@ -1,0 +1,11 @@
+{
+    "name": "Accounting",
+    "alias": "accounting",
+    "description": "Double-entry accounting core: chart of accounts, journal, general ledger and financial statements.",
+    "keywords": [],
+    "priority": 10,
+    "providers": [
+        "Modules\\Accounting\\Providers\\AccountingServiceProvider"
+    ],
+    "files": []
+}

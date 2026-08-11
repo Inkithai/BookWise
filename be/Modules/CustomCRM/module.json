@@ -1,0 +1,11 @@
+{
+    "name": "CustomCRM",
+    "alias": "customcrm",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\CustomCRM\\Providers\\CustomCRMServiceProvider"
+    ],
+    "files": []
+}

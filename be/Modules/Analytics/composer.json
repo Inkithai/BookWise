@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/analytics",
+    "description": "Analytics and Dashboard Statistics Module",
+    "authors": [
+        {
+            "name": "BookWise",
+            "email": "dev@bookwise.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Modules\\Analytics\\Providers\\AnalyticsServiceProvider"
+            ],
+            "aliases": {}
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Analytics\\": "",
+            "Modules\\Analytics\\Database\\Factories\\": "database/factories/",
+            "Modules\\Analytics\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Analytics\\Tests\\": "tests/"
+        }
+    }
+}

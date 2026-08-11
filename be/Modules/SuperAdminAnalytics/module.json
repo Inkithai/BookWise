@@ -1,0 +1,11 @@
+{
+    "name": "SuperAdminAnalytics",
+    "alias": "superadminanalytics",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\SuperAdminAnalytics\\Providers\\SuperAdminAnalyticsServiceProvider"
+    ],
+    "files": []
+}
