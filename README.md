@@ -1,4 +1,4 @@
-# BookWise — Multi-Tenant Accounting & Bookkeeping SaaS
+# BookWise - Multi-Tenant Accounting & Bookkeeping SaaS
 
 A multi-tenant **Accounting & Bookkeeping platform for Sri Lankan SMBs**, built with a
 Laravel 12 (nwidart/modules) backend and Next.js 16 frontend.
