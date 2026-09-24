@@ -3,6 +3,7 @@
 A multi-tenant **Accounting & Bookkeeping platform for Sri Lankan SMBs**, built with a
 Laravel 12 (nwidart/modules) backend and Next.js 16 frontend.
 
+
 ## Overview
 
 BookWise is a comprehensive accounting and bookkeeping SaaS designed for Sri Lankan businesses. It provides double-entry bookkeeping, invoicing, banking reconciliation, expense tracking, and financial reporting — all in a secure, multi-tenant architecture.
