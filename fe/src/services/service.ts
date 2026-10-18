@@ -537,12 +537,43 @@ export const register = (
   return http.post("admin/auth/register", formData);
 };
 
-/** Pre-check email/phone on Invoice API before registration. */
-export const validateRegistration = (email: string, phone_number: string) => {
-  const formData = new FormData();
-  formData.append("email", email);
-  formData.append("phone_number", phone_number);
-  return http.post("admin/auth/validate-registration", formData);
+/**
+ * Pre-check email/phone on Invoice API before registration.
+ *
+ * Routed through the same-origin /api/sync/invoice-validate-registration proxy
+ * instead of calling the Render API directly from the browser: when that API
+ * is down (suspended / hibernating / deploying) Render returns a 503 page
+ * WITHOUT CORS headers, which the browser reports as an opaque CORS error.
+ * The proxy turns that into a readable JSON error with a real status code.
+ * Rejects with an axios-shaped error (`err.response = { status, data }`) so
+ * callers can keep using the existing response/error handling below.
+ */
+export const validateRegistration = async (
+  email: string,
+  phone_number: string
+) => {
+  const res = await fetch("/api/sync/invoice-validate-registration", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({ email, phone_number }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    const err: Error & { response?: { status: number; data: unknown } } =
+      new Error(
+        (data as { message?: string })?.message ||
+          "Validation service is unavailable. Please try again."
+      );
+    err.response = { status: res.status, data };
+    throw err;
+  }
+
+  return { data, status: res.status };
 };
 
 export type RegistrationValidationResult = {
@@ -613,25 +644,40 @@ export const validateRegistrationBoth = async (
       Object.assign(errors, invoiceErrors);
     }
   } catch (err: unknown) {
-    if (axios.isAxiosError(err) && err.response?.status === 422) {
-      const errData =
-        (err.response.data as { errors?: Record<string, string | string[]> })
-          ?.errors ?? {};
+    // Works for both Axios errors and the axios-shaped errors thrown by the
+    // same-origin validation proxy: inspect `err.response` structurally.
+    const errResponse = (err as {
+      response?: {
+        status?: number;
+        data?: { message?: string; errors?: Record<string, string | string[]> };
+      };
+    })?.response;
+    const status = errResponse?.status;
+    const responseData = errResponse?.data;
+
+    if (status === 422) {
+      const errData = responseData?.errors ?? {};
       const invoiceErrors = normalizeRegistrationErrors(
         Object.keys(errData).length > 0
           ? errData
-          : {
-              email:
-                (err.response.data as { message?: string })?.message ||
-                "Validation failed.",
-            }
+          : { email: responseData?.message || "Validation failed." }
       );
       Object.assign(errors, invoiceErrors);
     } else {
-      const fallback =
-        axios.isAxiosError(err)
-          ? (err.response?.data as { message?: string })?.message || err.message
-          : "Could not verify your details with Invoice. Please try again.";
+      // No status (network failure) or 5xx = the API itself is unavailable
+      // (Render suspended/hibernating/deploying). That is not a validation
+      // problem — propagate so the form shows its retry toast instead of
+      // stamping "Network Error" under the email field.
+      if (status === undefined || status >= 500) {
+        throw err;
+      }
+
+      const responseMessage = responseData?.message;
+      const fallback = axios.isAxiosError(err)
+        ? responseMessage || err.message
+        : responseMessage ||
+          (err instanceof Error && err.message) ||
+          "Could not verify your details with Invoice. Please try again.";
       errors.email = [...(errors.email || []), fallback];
     }
   }
@@ -660,6 +706,14 @@ export const validateRegistrationBoth = async (
       if (syncErr.response?.status === 422 && syncErr.response.data?.errors) {
         Object.assign(errors, normalizeRegistrationErrors(syncErr.response.data.errors));
       } else {
+        const status = syncErr.response?.status;
+
+        // Upstream unavailable (5xx / no response at all) — surface as a
+        // retryable toast via the caller's catch, not as an email error.
+        if (status === undefined || status >= 500) {
+          throw iwErr;
+        }
+
         const iwMessage =
           syncErr.response?.data?.message ||
           syncErr.message ||

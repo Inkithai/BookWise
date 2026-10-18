@@ -90,3 +90,34 @@ You should see the `Access-Control-Allow-Origin` header in the response.
 - The CORS middleware must be registered in the **global** middleware stack (not just the API group) to ensure it runs on all requests, including OPTIONS preflight requests.
 - The `config/cors.php` file has a default fallback that allows `https://bookwise-theta-six.vercel.app` even if the environment variable is not set.
 - For production security, it's recommended to explicitly set the `CORS_ALLOWED_ORIGINS` environment variable rather than relying on the wildcard or default values.
+
+---
+
+## Addendum (2026-10-18) — same symptom, different root cause: the API service was suspended
+
+The identical console error reappeared in production:
+
+```
+POST https://bookwise-api.onrender.com/api/v1/admin/auth/validate-registration net::ERR_FAILED 503 (Service Unavailable)
+📡 API Error Response: {status: null, statusText: null, message: null, ...}
+```
+
+### Diagnosis
+
+Fetching the endpoint returned Render's static page — **"This service has been suspended by its owner."** — with HTTP 503 and **no CORS headers at all**, because the request never reaches Laravel (Render answers before nginx/PHP ever see it). The browser can't read a response without `Access-Control-Allow-Origin`, so it reports a misleading CORS error while the real failure is the 503.
+
+**Rule of thumb:** `CORS error + status: null + net::ERR_FAILED 503` means the API is not serving (suspended, hibernating, deploying or crashed) — it does **not** mean the CORS configuration is broken. Verify with:
+
+```bash
+curl -i https://bookwise-api.onrender.com/up
+# healthy: 200 OK   |   broken: 503 "Service Suspended" / HTML error page
+```
+
+### What fixes it
+
+1. **Restore the service** in the Render dashboard (redeploy/un-suspend `bookwise-api`; if Render suspended it for ToS/account reasons, contact Render support). Confirm `CORS_ALLOWED_ORIGINS` lists the Vercel origin (or leave it unset to use the built-in default) and redeploy.
+2. **Hardening shipped in the frontend** so this failure mode can never masquerade as CORS again:
+   - The register flow's pre-registration check no longer calls Render directly from the browser — it goes through the same-origin Next.js proxy `POST /api/sync/invoice-validate-registration`, which translates upstream 5xx/non-JSON responses (suspension page, cold start) into readable JSON.
+   - The existing `/api/sync/validate-registration` proxy now has an upstream timeout and returns a friendly JSON 503 instead of an empty body.
+   - `validateRegistrationBoth` now propagates upstream outages (5xx / no response) to the form's retry toast instead of printing "Network Error" under the email field.
+

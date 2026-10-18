@@ -217,6 +217,7 @@ Verify: `curl https://bookwise-api.onrender.com/up` → `200`.
 | Worker never processes jobs, logs show nginx/php-fpm | Docker services ignore `startCommand`. Set `dockerCommand: supervisord -n -c /etc/supervisord-worker.conf`. |
 | Deploy succeeds but tables are missing | The web container must get `RUN_MIGRATIONS=true`; check the entrypoint logs for `Applying database migrations`. |
 | Browser console shows CORS errors | `CORS_ALLOWED_ORIGINS` must list the exact frontend origin(s); restart the API after changing it. |
+| Console shows a **CORS error** but the request failed with `net::ERR_FAILED 503` and `status: null` in the API error log | The CORS config is fine — the API isn't serving at all. Render answers with its static page (503, no CORS headers) when the service is **suspended**, hibernating (free plan), deploying or crashed. Open `https://bookwise-api.onrender.com/up`: `200` = healthy; `"Service Suspended"` = restore/redeploy the service in the Render dashboard (if Render suspended it for ToS/account reasons, contact Render support); plain `503` = wait ~50 s for a free-plan cold start, then retry. |
 | `No application encryption key has been specified` | Set `APP_KEY` (`base64:...`) on Render and redeploy. |
 | Passport errors about keys / `oauth` 500s | `PASSPORT_PRIVATE_KEY` / `PASSPORT_PUBLIC_KEY` must contain the full PEM with `\n` line escapes. |
 | Migrations fail with SSL errors | Use the **session** pooler host with `DB_SSLMODE=require`. |
