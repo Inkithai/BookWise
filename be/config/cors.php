@@ -11,10 +11,9 @@ return [
     | cross-origin. Set CORS_ALLOWED_ORIGINS in production to a comma-separated
     | list of frontend origins, e.g.:
     |
-    |   CORS_ALLOWED_ORIGINS=https://bookwise.vercel.app,https://app.bookwise.lk
+    |   CORS_ALLOWED_ORIGINS=https://bookwise-theta-six.vercel.app,https://bookwise.vercel.app,https://app.bookwise.lk
     |
-    | Leaving it empty allows any origin ("*"), which is fine for the
-    | Bearer-token based API but should be tightened for production.
+    | Leaving it empty defaults to allowing bookwise-theta-six.vercel.app and localhost.
     |
     */
 
@@ -25,7 +24,7 @@ return [
     'allowed_origins' => array_filter(
         array_map(
             'trim',
-            explode(',', (string) env('CORS_ALLOWED_ORIGINS', '*'))
+            explode(',', (string) env('CORS_ALLOWED_ORIGINS', 'https://bookwise-theta-six.vercel.app,http://localhost:3000,https://bookwise.vercel.app'))
         )
     ) ?: ['*'],
 
