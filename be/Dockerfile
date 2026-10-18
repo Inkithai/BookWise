@@ -67,7 +67,11 @@ RUN composer install --no-dev --no-scripts --prefer-dist --optimize-autoloader
 COPY . .
 
 # Regenerate the optimized autoloader (classmap) against the real source tree.
-RUN composer dump-autoload --optimize-autoloader --no-scripts \
+# NOTE: `dump-autoload` spells the flag `--optimize` (`-o`); the long form
+# `--optimize-autoloader` is only valid for `composer install`/`update` and
+# made the image build fail with "The --optimize-autoloader option does not
+# exist".
+RUN composer dump-autoload --optimize --no-dev --no-scripts \
     && mkdir -p storage/framework/cache/data storage/framework/sessions \
               storage/framework/views storage/framework/testing \
               storage/logs storage/app/public bootstrap/cache \

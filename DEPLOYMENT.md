@@ -212,6 +212,7 @@ Verify: `curl https://bookwise-api.onrender.com/up` → `200`.
 | Symptom | Fix |
 | --- | --- |
 | Blueprint import fails: `must NOT have additional properties` with `root` | Render has no `root:` key. Use `dockerContext: ./be` + `dockerfilePath: ./be/Dockerfile` (as in `render.yaml`). |
+| Image build fails: `The "--optimize-autoloader" option does not exist` | `composer dump-autoload` only accepts `--optimize` (`-o`) — the long `--optimize-autoloader` alias belongs to `composer install`. See `be/Dockerfile`. |
 | Blueprint import fails: pre-deploy commands require a paid plan | Remove `preDeployCommand`; migrations run at boot via `RUN_MIGRATIONS=true` (`be/docker/entrypoint.sh`). |
 | Worker never processes jobs, logs show nginx/php-fpm | Docker services ignore `startCommand`. Set `dockerCommand: supervisord -n -c /etc/supervisord-worker.conf`. |
 | Deploy succeeds but tables are missing | The web container must get `RUN_MIGRATIONS=true`; check the entrypoint logs for `Applying database migrations`. |
