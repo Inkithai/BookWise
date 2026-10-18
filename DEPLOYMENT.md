@@ -22,8 +22,10 @@ Browser
   driver-aware: it runs on MySQL locally and PostgreSQL in production.
 
 Everything below is a one-time setup, after which pushing to `main`
-redeploys both services automatically (Render also runs
-`php artisan migrate --force` as a pre-deploy step).
+redeploys both services automatically. The API container applies pending
+migrations on boot (`RUN_MIGRATIONS=true`, handled by
+`be/docker/entrypoint.sh`) — Render's pre-deploy step is a paid-plan feature,
+so it is deliberately not used by this Blueprint.
 
 ---
 
@@ -49,8 +51,10 @@ redeploys both services automatically (Render also runs
    > Supabase free projects pause after ~1 week of inactivity — disable
    > pausing or accept a slow first request.
 
-Tables are created by `php artisan migrate --force`, which Render runs
-automatically before each deploy (see `preDeployCommand` in `render.yaml`).
+Tables are created by `php artisan migrate --force`, which the API container
+runs automatically when it starts (`RUN_MIGRATIONS=true` in `render.yaml`,
+executed by `be/docker/entrypoint.sh`). Migrations only run on the web
+service so the worker can never race them.
 
 ---
 
@@ -94,23 +98,32 @@ PASSPORT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMC8CAQ...\n...\n-----END PRIV
 
 1. Render dashboard → **New → Blueprint** → connect the repo containing
    this project. Render finds [`render.yaml`](./render.yaml) and creates:
-   - `bookwise-api` — web service (Docker, root dir `be/`, health check `/up`)
-   - `bookwise-worker` — queue worker + Laravel scheduler *(paid instance;
-     delete it if you set `QUEUE_CONNECTION=sync` and don't need cron)*
+   - `bookwise-api` — web service (Docker image built from `be/`, health
+     check `/up`, migrations applied at container start)
+   - `bookwise-worker` — queue worker + Laravel scheduler under supervisord
+     *(paid instance; delete it if you set `QUEUE_CONNECTION=sync` and don't
+     need cron)*
 2. Fill in every **sync: false** variable (APP_KEY, APP_URL,
    FRONTEND_URL, CORS_ALLOWED_ORIGINS, DB_*, PASSPORT_* keys, mail/Stripe/
    Google if used). `APP_URL` = the Render URL, e.g.
    `https://bookwise-api.onrender.com`.
-3. Apply → Render builds the Docker image, runs migrations, and boots.
+3. Apply → Render builds the Docker image; the container migrates the
+   database and boots.
+
+> The Blueprint intentionally avoids `preDeployCommand`: Render only offers
+> it on paid instances and rejects a free-plan Blueprint that sets it.
+> Migrations run from the entrypoint instead (`RUN_MIGRATIONS=true`).
 
 ### Option B: Manual web service
 
-| Setting           | Value                                  |
-| ----------------- | -------------------------------------- |
-| Root Directory    | `be`                                   |
-| Runtime           | Docker (`be/Dockerfile`)               |
-| Health check path | `/up`                                  |
-| Pre-deploy cmd    | `php artisan migrate --force`          |
+| Setting           | Value                                                     |
+| ----------------- | --------------------------------------------------------- |
+| Root Directory    | `be`                                                      |
+| Runtime           | Docker (`Dockerfile`)                                     |
+| Health check path | `/up`                                                     |
+| Docker command    | *(leave empty — the image CMD starts nginx/php-fpm)*      |
+| Env var           | `RUN_MIGRATIONS=true` — applies migrations at boot        |
+| Pre-deploy cmd    | *(paid plans only)* `php artisan migrate --force`         |
 
 …then add the same environment variables as in `render.yaml`.
 
@@ -198,6 +211,10 @@ Verify: `curl https://bookwise-api.onrender.com/up` → `200`.
 
 | Symptom | Fix |
 | --- | --- |
+| Blueprint import fails: `must NOT have additional properties` with `root` | Render has no `root:` key. Use `dockerContext: ./be` + `dockerfilePath: ./be/Dockerfile` (as in `render.yaml`). |
+| Blueprint import fails: pre-deploy commands require a paid plan | Remove `preDeployCommand`; migrations run at boot via `RUN_MIGRATIONS=true` (`be/docker/entrypoint.sh`). |
+| Worker never processes jobs, logs show nginx/php-fpm | Docker services ignore `startCommand`. Set `dockerCommand: supervisord -n -c /etc/supervisord-worker.conf`. |
+| Deploy succeeds but tables are missing | The web container must get `RUN_MIGRATIONS=true`; check the entrypoint logs for `Applying database migrations`. |
 | Browser console shows CORS errors | `CORS_ALLOWED_ORIGINS` must list the exact frontend origin(s); restart the API after changing it. |
 | `No application encryption key has been specified` | Set `APP_KEY` (`base64:...`) on Render and redeploy. |
 | Passport errors about keys / `oauth` 500s | `PASSPORT_PRIVATE_KEY` / `PASSPORT_PUBLIC_KEY` must contain the full PEM with `\n` line escapes. |

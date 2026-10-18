@@ -1,8 +1,10 @@
 # syntax=docker/dockerfile:1
 #
 # BookWise API — production image for Render (or any Docker host).
-# nginx + php-fpm + supervisor in a single container; queues/scheduler
-# run from the same image with a different start command (see render.yaml).
+# nginx + php-fpm + supervisor in a single container. The same image runs the
+# queue worker + scheduler via dockerCommand (supervisord-worker.conf) — see
+# render.yaml. Database migrations are applied by docker/entrypoint.sh when
+# RUN_MIGRATIONS=true (the free Render plan has no pre-deploy step).
 
 FROM composer:2 AS composerbin
 
@@ -75,6 +77,7 @@ RUN composer dump-autoload --optimize-autoloader --no-scripts \
 # ── nginx + supervisor + entrypoint ───────────────────────────────────────
 COPY docker/nginx.conf.template /etc/nginx/nginx.conf.template
 COPY docker/supervisord.conf /etc/supervisord.conf
+COPY docker/supervisord-worker.conf /etc/supervisord-worker.conf
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 

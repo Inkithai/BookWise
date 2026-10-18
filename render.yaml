@@ -11,6 +11,15 @@
 #   DB_HOST, DB_USERNAME, DB_PASSWORD,
 #   PASSPORT_PRIVATE_KEY, PASSPORT_PUBLIC_KEY,
 #   and (optionally) mail / Stripe / Google OAuth credentials.
+#
+# Field notes (these are the ones Render validates strictly):
+#   * dockerContext / dockerfilePath replace the old "root:" key — Render has
+#     no "root" field, and an unknown key rejects the whole Blueprint.
+#   * preDeployCommand is a paid-plan feature. This Blueprint runs on a free
+#     web instance, so migrations are applied by be/docker/entrypoint.sh on
+#     boot instead (RUN_MIGRATIONS=true below).
+#   * Docker services take dockerCommand, not startCommand. Render ignores
+#     startCommand for runtime: docker.
 # ──────────────────────────────────────────────────────────────────────────
 
 services:
@@ -18,14 +27,17 @@ services:
   - type: web
     name: bookwise-api
     runtime: docker
-    root: be
-    dockerfilePath: ./Dockerfile
+    # Monorepo: the image is built from be/ (paths are repo-root relative).
+    dockerContext: ./be
+    dockerfilePath: ./be/Dockerfile
     plan: free # upgrade to "starter" for an always-on instance
     region: singapore # closest Render region to Sri Lanka
     healthCheckPath: /up
-    # Runs in a one-off container against the NEW image before traffic
-    # switches over — keeps Supabase migrations in sync with each deploy.
-    preDeployCommand: php artisan migrate --force
+    # NOTE: preDeployCommand (php artisan migrate --force) requires a paid
+    # instance and gets the free-plan Blueprint rejected, so migrations run
+    # from be/docker/entrypoint.sh when the container boots instead — see
+    # RUN_MIGRATIONS below. On a paid plan, delete RUN_MIGRATIONS and move
+    # `php artisan migrate --force` back into preDeployCommand.
     envVars:
       - key: APP_NAME
         value: BookWise
@@ -122,6 +134,11 @@ services:
         value: local
       - key: L5_SWAGGER_GENERATE_ALWAYS
         value: "false"
+      # Runs `php artisan migrate --force` when the container starts (free
+      # plans have no pre-deploy step). Only the web service sets this — the
+      # worker must not race it. See be/docker/entrypoint.sh.
+      - key: RUN_MIGRATIONS
+        value: "true"
 
   # ── Queue worker + scheduler (optional but recommended) ─────────────────
   # Consumes the database queue (OTP/notification mails, Stripe jobs) and
@@ -132,22 +149,34 @@ services:
   - type: worker
     name: bookwise-worker
     runtime: docker
-    root: be
-    dockerfilePath: ./Dockerfile
+    # Same image and build context as the API (monorepo).
+    dockerContext: ./be
+    dockerfilePath: ./be/Dockerfile
     plan: starter # Render background workers require a paid instance
     region: singapore
-    startCommand: sh -c "php artisan queue:work --tries=3 --timeout=90 & php artisan schedule:work"
+    # Render ignores startCommand for runtime: docker — dockerCommand overrides
+    # the image CMD. supervisord keeps the queue consumer and the scheduler
+    # alive, restarts them if they exit, and forwards SIGTERM so in-flight
+    # jobs can finish before the instance is stopped.
+    dockerCommand: supervisord -n -c /etc/supervisord-worker.conf
+    maxShutdownDelaySeconds: 120 # > queue:work --timeout=90
     envVars:
       - key: APP_ENV
         value: production
       - key: APP_DEBUG
         value: "false"
+      - key: APP_TIMEZONE
+        value: Asia/Colombo
       - key: APP_KEY
         sync: false
       - key: APP_URL
         sync: false
       - key: FRONTEND_URL
         sync: false
+      # Wait in the entrypoint until the web service has created the schema,
+      # then start supervisord (avoids queue crash-loops on the first deploy).
+      - key: WAIT_FOR_SCHEMA
+        value: "true"
       - key: DB_CONNECTION
         value: pgsql
       - key: DB_HOST
