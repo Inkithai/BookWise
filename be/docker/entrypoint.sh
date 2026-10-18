@@ -41,4 +41,37 @@ php artisan config:cache >/dev/null
 # NOTE: route:cache is intentionally skipped — routes/api.php registers a
 # Closure route which cannot be serialized into the route cache.
 
+# 6. Apply pending migrations when asked (web service only).
+#    Render's preDeployCommand is a paid-plan feature, so on the free plan the
+#    web container migrates itself before it starts serving. Gated on an env
+#    var so the worker and one-off containers never run migrations in parallel
+#    with the web service.
+if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
+    echo "[entrypoint] Applying database migrations..."
+    attempt=1
+    until php artisan migrate --force --no-interaction; do
+        if [ "$attempt" -ge 5 ]; then
+            echo "[entrypoint] Migrations failed after ${attempt} attempts — aborting boot." >&2
+            exit 1
+        fi
+        echo "[entrypoint] Migration attempt ${attempt} failed; retrying in 5s..." >&2
+        attempt=$((attempt + 1))
+        sleep 5
+    done
+    echo "[entrypoint] Migrations up to date."
+fi
+
+# 7. Optionally wait for the schema before starting long-lived processes.
+#    The worker service sets WAIT_FOR_SCHEMA=true: the web container performs
+#    the migrations, and the worker must not crash-loop against a database
+#    that is still being built on the first deploy.
+if [ "${WAIT_FOR_SCHEMA:-false}" = "true" ]; then
+    echo "[entrypoint] Waiting for the database schema..."
+    until php artisan migrate:status >/dev/null 2>&1; do
+        echo "[entrypoint] Schema not ready yet; retrying in 5s..." >&2
+        sleep 5
+    done
+    echo "[entrypoint] Database schema is present."
+fi
+
 exec "$@"
