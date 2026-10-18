@@ -52,10 +52,13 @@ php artisan serve --port=8001
 
 ```bash
 cd fe
-cp .env.example .env.local     # NEXT_PUBLIC_API_BASE_URL=http://localhost:8001/api
+cp .env.example .env.local     # NEXT_PUBLIC_API_BASE_URL=http://localhost:8001
 npm install
 npm run dev                     # http://localhost:3000
 ```
+
+> `NEXT_PUBLIC_API_BASE_URL` is the API **root** URL — without `/api` and
+> without a trailing slash; the service layer appends `/api/v1` itself.
 
 The accounting workspace lives under `/accounting` and talks to the backend
 through `src/services/accounting.service.ts`.
@@ -76,6 +79,20 @@ environment variables. Key variables include:
 - **Authentication:** `PASSPORT_PRIVATE_KEY`, `PASSPORT_PUBLIC_KEY`
 - **Stripe:** `STRIPE_PUBLISHABLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
 - **API URL:** `NEXT_PUBLIC_API_BASE_URL` (frontend), `APP_URL` (backend)
+- **CORS:** `CORS_ALLOWED_ORIGINS` — comma-separated frontend origins allowed to call the API
+
+## Deployment
+
+Production runs on **Vercel** (frontend), **Render** (Laravel API, Docker)
+and **Supabase** (PostgreSQL). The repository ships with everything needed:
+
+- [`DEPLOYMENT.md`](./DEPLOYMENT.md) — step-by-step guide (Supabase → Render → Vercel)
+- [`render.yaml`](./render.yaml) — Render Blueprint (API + queue worker, env vars, health check, auto-migrations)
+- [`be/Dockerfile`](./be/Dockerfile) — nginx + php-fpm production image
+- `be/.env.example` / `fe/.env.example` — environment references
+
+The backend is driver-aware and runs on MySQL (local dev) or PostgreSQL
+(Supabase) without code changes.
 
 ## Currency & Localization
 

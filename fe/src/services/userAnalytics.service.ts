@@ -223,7 +223,7 @@ export interface AnalyticsUserDetail {
   user_name: string;
   is_active: number | string;
   is_active_label: string;
-  is_otp_verified: number | string;
+  is_otp_verified: number | string | boolean;
   is_otp_verified_label: string;
   account_type: string | null;
   profile_img: string | null;

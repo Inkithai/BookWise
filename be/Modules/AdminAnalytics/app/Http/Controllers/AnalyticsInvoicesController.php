@@ -3,6 +3,7 @@
 namespace Modules\AdminAnalytics\app\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Support\DbDialect;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -154,13 +155,13 @@ class AnalyticsInvoicesController extends Controller
 
             $userStatsQ = Invoice::whereNull('invoices.deleted_at')
                 ->join('users', 'invoices.created_by', '=', 'users.id')
-                ->selectRaw('
-                    users.id as userId,
-                    TRIM(CONCAT(COALESCE(users.first_name,"")," ",COALESCE(users.last_name,""))) as userName,
+                ->selectRaw("
+                    users.id as \"userId\",
+                    TRIM(CONCAT(COALESCE(users.first_name,''),' ',COALESCE(users.last_name,''))) as \"userName\",
                     users.user_name,
-                    COUNT(invoices.id) as invoiceCount,
-                    GROUP_CONCAT(invoices.status) as statuses_raw
-                ')
+                    COUNT(invoices.id) as \"invoiceCount\",
+                    " . DbDialect::groupConcat('invoices.status') . " as statuses_raw
+                ")
                 ->groupBy('users.id', 'users.first_name', 'users.last_name', 'users.user_name')
                 ->orderByDesc('invoiceCount');
             

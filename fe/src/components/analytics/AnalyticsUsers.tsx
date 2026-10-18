@@ -39,8 +39,10 @@ import { RootState } from '@/slices/store'
 const isOtpVerifiedUser = (user: Partial<AnalyticsUser> | null | undefined): boolean => {
   if (!user) return false
   const raw = (user as any).is_otp_verified
-  const numeric = typeof raw === 'string' ? Number(raw) : raw
-  if (numeric === 1) return true
+  // Accept MySQL ints (1/0), PostgreSQL booleans (true/'t') and strings ('1'/'true')
+  if (raw === true) return true
+  const normalized = typeof raw === 'string' ? raw.trim().toLowerCase() : raw
+  if (normalized === 1 || normalized === '1' || normalized === 't' || normalized === 'true') return true
   const label = String((user as any).is_otp_verified_label ?? '').trim().toLowerCase()
   return label === 'verified'
 }

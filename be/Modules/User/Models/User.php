@@ -84,6 +84,11 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at'  => 'datetime',
         'stripe_connected_at' => 'datetime',
+        // PostgreSQL returns booleans as 't'/'f' strings through PDO; casting
+        // keeps these flags real PHP booleans on every driver and lets us
+        // write `1`/`true` interchangeably.
+        'is_otp_verified'    => 'boolean',
+        'has_seen_pricing'   => 'boolean',
     ];
 
     public function setPasswordAttribute($value)

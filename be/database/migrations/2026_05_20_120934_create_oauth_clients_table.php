@@ -11,6 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Idempotent: the oauth_* tables are created by a duplicated pair of
+        // migrations (2026_05_20 and 2026_06_01). Skip if it already exists.
+        if (Schema::hasTable('oauth_clients')) {
+            return;
+        }
+
         Schema::create('oauth_clients', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->nullableMorphs('owner');
