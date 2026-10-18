@@ -14,6 +14,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Add CORS middleware to global stack to handle all requests
+        $middleware->prepend(\Fruitcake\Cors\HandleCors::class);
+
         $middleware->alias([
             'sync_app_api_key' => \App\Http\Middleware\RequireBookWiseApiKey::class,
             'sync.sso' => \App\Http\Middleware\SyncOAuth2User::class,
