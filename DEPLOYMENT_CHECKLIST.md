@@ -4,7 +4,7 @@
 
 The following files have been modified to fix the CORS issue:
 
-1. **`be/composer.json`** - Added `fruitcake/laravel-cors: ^3.0` package
+1. **`be/composer.json`** - No extra CORS package: Laravel 12's built-in `Illuminate\Http\Middleware\HandleCors` (backed by `fruitcake/php-cors`, already in `composer.lock` via `laravel/framework`) is used. Do **not** add `fruitcake/laravel-cors` — it is not in the lock file, so `composer install` in Docker fails, and v3 does not support Laravel 12.
 2. **`be/bootstrap/app.php`** - Registered CORS middleware in Laravel 12 middleware configuration
 3. **`be/app/Http/Kernel.php`** - Added CORS middleware to global middleware stack
 4. **`be/config/cors.php`** - Updated default allowed origins to include production frontend URLs
@@ -21,7 +21,7 @@ cd /home/user/BookWise/be
 composer install
 ```
 
-This will install the `fruitcake/laravel-cors` package.
+This installs the dependencies pinned in `composer.lock` (CORS support is included with the framework).
 
 ### Step 2: Update Render Environment Variables
 

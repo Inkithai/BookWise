@@ -14,18 +14,23 @@ The Laravel backend was not properly configured with CORS middleware, preventing
 
 ## Solution
 
-### 1. Added CORS Package to composer.json
-Added `fruitcake/laravel-cors: ^3.0` to the require section of `be/composer.json` to ensure the CORS middleware is available.
+### 1. CORS package — use the framework's built-in middleware (fixed)
+Laravel 12 ships `Illuminate\Http\Middleware\HandleCors` backed by `fruitcake/php-cors`,
+which is already a `laravel/framework` dependency in `composer.lock`. The standalone
+`fruitcake/laravel-cors` package must **not** be added to `composer.json`: it was added
+there without updating `composer.lock`, which made the Docker build fail at
+`composer install` ("Required package fruitcake/laravel-cors is not present in the lock
+file"), and v3 does not support Laravel 12 anyway.
 
 ### 2. Registered CORS Middleware
 Updated `be/bootstrap/app.php` to register the CORS middleware in the global middleware stack:
 ```php
-$middleware->prepend(\Fruitcake\Cors\HandleCors::class);
+$middleware->prepend(\Illuminate\Http\Middleware\HandleCors::class);
 ```
 
 Also updated `be/app/Http/Kernel.php` to include the CORS middleware in the global middleware stack:
 ```php
-\Fruitcake\Cors\HandleCors::class,
+\Illuminate\Http\Middleware\HandleCors::class,
 ```
 
 ### 3. Updated CORS Configuration
@@ -41,10 +46,10 @@ CORS_ALLOWED_ORIGINS=https://bookwise-theta-six.vercel.app,http://localhost:3000
 
 ## Deployment Steps
 
-1. **Install the CORS package:**
+1. **Install dependencies (no extra CORS package needed):**
    ```bash
    cd /home/user/BookWise/be
-   composer require fruitcake/laravel-cors
+   composer install
    ```
 
 2. **Update the .env file on Render:**
@@ -62,7 +67,7 @@ CORS_ALLOWED_ORIGINS=https://bookwise-theta-six.vercel.app,http://localhost:3000
 
 ## Files Modified
 
-1. `be/composer.json` - Added fruitcake/laravel-cors package
+1. `be/composer.json` - No CORS package added (framework built-in is used; keeps composer.lock in sync)
 2. `be/bootstrap/app.php` - Registered CORS middleware
 3. `be/app/Http/Kernel.php` - Added CORS middleware to global stack
 4. `be/config/cors.php` - Updated default allowed origins
