@@ -62,6 +62,22 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    /**
+     * The attributes that should be cast.
+     *
+     * PostgreSQL returns boolean columns as 't'/'f' strings through PDO;
+     * casting keeps these flags real PHP booleans on every driver and lets
+     * us write `1`/`true` interchangeably.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'email_verified_at'   => 'datetime',
+        'stripe_connected_at' => 'datetime',
+        'is_otp_verified'     => 'boolean',
+        'has_seen_pricing'    => 'boolean',
+    ];
+
     public function hasAccess($permissions): bool
     {
         // Grant all permissions if user is super-admin

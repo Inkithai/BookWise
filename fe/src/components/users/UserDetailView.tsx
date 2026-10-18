@@ -140,6 +140,9 @@ export function UserDetailView({ userId }: UserDetailViewProps) {
   const isOtpVerified =
     user.is_otp_verified === 1 ||
     user.is_otp_verified === '1' ||
+    user.is_otp_verified === true ||
+    user.is_otp_verified === 'true' ||
+    user.is_otp_verified === 't' ||
     user.is_otp_verified_label?.toLowerCase() === 'verified';
 
   const roles = (() => {

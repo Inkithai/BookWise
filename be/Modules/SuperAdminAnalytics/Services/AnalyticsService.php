@@ -2,6 +2,7 @@
 
 namespace Modules\SuperAdminAnalytics\Services;
 
+use App\Support\DbDialect;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -46,10 +47,10 @@ class AnalyticsService
             ->join('users as u', 'u.id', '=', 'i.created_by')
             ->whereNull('i.deleted_at')
             ->whereNull('u.deleted_at')
-            ->selectRaw('u.id as userId,
-                CONCAT(u.first_name," ",u.last_name) as userName,
-                COUNT(i.id) as invoiceCount,
-                COALESCE(SUM(i.total_amount),0) as totalAmount')
+            ->selectRaw("u.id as \"userId\",
+                CONCAT(u.first_name,' ',u.last_name) as \"userName\",
+                COUNT(i.id) as \"invoiceCount\",
+                COALESCE(SUM(i.total_amount),0) as \"totalAmount\"")
             ->groupBy('u.id', 'u.first_name', 'u.last_name')
             ->get()
             ->map(fn ($r) => [
@@ -65,9 +66,9 @@ class AnalyticsService
             ->join('users as u', 'u.id', '=', 'c.host_id')
             ->whereNull('u.deleted_at')
             ->whereNull('c.deleted_at')
-            ->selectRaw('u.id as userId,
-                CONCAT(u.first_name," ",u.last_name) as userName,
-                COUNT(c.id) as clientCount')
+            ->selectRaw("u.id as \"userId\",
+                CONCAT(u.first_name,' ',u.last_name) as \"userName\",
+                COUNT(c.id) as \"clientCount\"")
             ->groupBy('u.id', 'u.first_name', 'u.last_name')
             ->get()
             ->map(fn ($r) => [
@@ -82,9 +83,9 @@ class AnalyticsService
             ->join('users as u', 'u.id', '=', 'hu.host_id')
             ->whereNull('hu.deleted_at')
             ->whereNull('u.deleted_at')
-            ->selectRaw('u.id as userId,
-                CONCAT(u.first_name," ",u.last_name) as userName,
-                COUNT(hu.id) as subUserCount')
+            ->selectRaw("u.id as \"userId\",
+                CONCAT(u.first_name,' ',u.last_name) as \"userName\",
+                COUNT(hu.id) as \"subUserCount\"")
             ->groupBy('u.id', 'u.first_name', 'u.last_name')
             ->get()
             ->map(fn ($r) => [
@@ -129,7 +130,7 @@ class AnalyticsService
         $invoicesByMonth = DB::table('invoices')
             ->whereNull('deleted_at')
             ->where('created_at', '>=', $since)
-            ->selectRaw("DATE_FORMAT(created_at,'%Y-%m') as month, COUNT(*) as count")
+            ->selectRaw(DbDialect::monthKey('created_at') . ' as month, COUNT(*) as count')
             ->groupBy('month')
             ->pluck('count', 'month');
 
@@ -138,21 +139,21 @@ class AnalyticsService
             ->whereNull('ic.deleted_at')
             ->whereNotNull('ic.client_id')
             ->where('ic.created_at', '>=', $since)
-            ->selectRaw("DATE_FORMAT(ic.created_at,'%Y-%m') as month, COUNT(DISTINCT ic.client_id) as count")
+            ->selectRaw(DbDialect::monthKey('ic.created_at') . ' as month, COUNT(DISTINCT ic.client_id) as count')
             ->groupBy('month')
             ->pluck('count', 'month');
 
         $usersByMonth = DB::table('users')
             ->whereNull('deleted_at')
             ->where('created_at', '>=', $since)
-            ->selectRaw("DATE_FORMAT(created_at,'%Y-%m') as month, COUNT(*) as count")
+            ->selectRaw(DbDialect::monthKey('created_at') . ' as month, COUNT(*) as count')
             ->groupBy('month')
             ->pluck('count', 'month');
 
         $subUsersByMonth = DB::table('host_users')
             ->whereNull('deleted_at')
             ->where('created_at', '>=', $since)
-            ->selectRaw("DATE_FORMAT(created_at,'%Y-%m') as month, COUNT(*) as count")
+            ->selectRaw(DbDialect::monthKey('created_at') . ' as month, COUNT(*) as count')
             ->groupBy('month')
             ->pluck('count', 'month');
 
@@ -229,7 +230,8 @@ class AnalyticsService
 
         $data = $users->map(function ($u) use ($subUserMap) {
             $subs = $subUserMap->get($u->id, collect());
-            $isOtpVerified = (bool) $u->is_otp_verified;
+            // PG returns booleans as 't'/'f' strings through DB::table — normalise.
+            $isOtpVerified = DbDialect::toBool($u->is_otp_verified);
             return [
                 'id'             => $u->id,
                 'full_name'      => $u->full_name,
@@ -352,7 +354,8 @@ class AnalyticsService
             ->toArray();
 
         $isActive      = (bool) $user->is_active;
-        $isOtpVerified = (bool) $user->is_otp_verified;
+        // PG returns booleans as 't'/'f' strings through DB::table — normalise.
+        $isOtpVerified = DbDialect::toBool($user->is_otp_verified);
 
         return [
             'id'                    => $user->id,
@@ -365,7 +368,7 @@ class AnalyticsService
             'user_name'             => $user->user_name,
             'is_active'             => $user->is_active,
             'is_active_label'       => $isActive ? 'Active' : 'Inactive',
-            'is_otp_verified'       => $user->is_otp_verified,
+            'is_otp_verified'       => $isOtpVerified,
             'is_otp_verified_label' => $isOtpVerified ? 'Verified' : 'Not Verified',
             'account_type'          => $user->account_type,
             'profile_img'           => $user->profile_img,
@@ -393,7 +396,7 @@ class AnalyticsService
         return DB::table('users')
             ->whereNull('deleted_at')
             ->orderBy('first_name')
-            ->selectRaw("id as userId, CONCAT(first_name,' ',last_name) as userName")
+            ->selectRaw("id as \"userId\", CONCAT(first_name,' ',last_name) as \"userName\"")
             ->get()
             ->map(fn ($u) => [
                 'userId'   => (string) $u->userId,
@@ -417,14 +420,14 @@ class AnalyticsService
             c.telephone                                      AS phone,
             c.client_type                                    AS company,
             c.host_id                                        AS user_id,
-            CONCAT(u.first_name,' ',u.last_name)             AS userName,
+            CONCAT(u.first_name,' ',u.last_name)             AS \"userName\",
             CASE WHEN c.deleted_at IS NULL THEN 'active' ELSE 'inactive' END AS status,
             (
                 SELECT COUNT(*)
                 FROM invoices
                 WHERE client_id = c.id
                   AND deleted_at IS NULL
-            )                                                AS totalInvoices
+            )                                                AS \"totalInvoices\"
         ");
  
     // ── Search filter ─────────────────────────────────────────────────────
@@ -495,11 +498,11 @@ class AnalyticsService
         ->join('users as u', 'u.id', '=', 'c.host_id')
         ->whereNull('u.deleted_at')
         ->selectRaw("
-            u.id                                         AS userId,
-            CONCAT(u.first_name,' ',u.last_name)         AS userName,
-            COUNT(c.id)                                  AS clientCount,
-            SUM(CASE WHEN c.deleted_at IS NULL THEN 1 ELSE 0 END)  AS activeCount,
-            SUM(CASE WHEN c.deleted_at IS NOT NULL THEN 1 ELSE 0 END) AS inactiveCount
+            u.id                                         AS \"userId\",
+            CONCAT(u.first_name,' ',u.last_name)         AS \"userName\",
+            COUNT(c.id)                                  AS \"clientCount\",
+            SUM(CASE WHEN c.deleted_at IS NULL THEN 1 ELSE 0 END)  AS \"activeCount\",
+            SUM(CASE WHEN c.deleted_at IS NOT NULL THEN 1 ELSE 0 END) AS \"inactiveCount\"
         ")
         ->groupBy('u.id', 'u.first_name', 'u.last_name')
         ->orderByDesc('clientCount')
@@ -546,7 +549,7 @@ class AnalyticsService
                 i.invoice_date as date,
                 i.due_date,
                 i.created_by as user_id,
-                CONCAT(u.first_name,' ',u.last_name) as userName
+                CONCAT(u.first_name,' ',u.last_name) as \"userName\"
             ");
 
         if (!empty($filters['search'])) {
@@ -630,9 +633,9 @@ class AnalyticsService
             ->whereNull('i.deleted_at')
             ->join('users as u', 'u.id', '=', 'i.created_by')
             ->selectRaw("
-                u.id as userId,
-                CONCAT(u.first_name,' ',u.last_name) as userName,
-                COUNT(i.id) as invoiceCount,
+                u.id as \"userId\",
+                CONCAT(u.first_name,' ',u.last_name) as \"userName\",
+                COUNT(i.id) as \"invoiceCount\",
                 i.status
             ")
             ->groupBy('u.id', 'u.first_name', 'u.last_name', 'i.status')
@@ -699,16 +702,20 @@ class AnalyticsService
     // ── 2. Resolved-status expression ─────────────────────────────────────
     // Priority 1: $.status inside the JSON details blob.
     // Priority 2: action keyword matching against real data.
+    // Driver-aware: MySQL uses JSON_VALID/JSON_EXTRACT, PostgreSQL uses ->>.
+    $jsonValid  = DbDialect::jsonValid('al.details');
+    $jsonStatus = DbDialect::jsonValueLower('al.details', 'status');
+
     $statusExpr = "
         CASE
-            WHEN JSON_VALID(al.details)
-             AND LOWER(JSON_UNQUOTE(JSON_EXTRACT(al.details, '$.status'))) = 'failed'
+            WHEN {$jsonValid}
+             AND {$jsonStatus} = 'failed'
                 THEN 'failed'
-            WHEN JSON_VALID(al.details)
-             AND LOWER(JSON_UNQUOTE(JSON_EXTRACT(al.details, '$.status'))) = 'pending'
+            WHEN {$jsonValid}
+             AND {$jsonStatus} = 'pending'
                 THEN 'pending'
-            WHEN JSON_VALID(al.details)
-             AND LOWER(JSON_UNQUOTE(JSON_EXTRACT(al.details, '$.status'))) = 'success'
+            WHEN {$jsonValid}
+             AND {$jsonStatus} = 'success'
                 THEN 'success'
             WHEN al.action LIKE '%Failed%'
               OR al.action LIKE '%Exception%'
@@ -729,6 +736,17 @@ class AnalyticsService
     $accountTypeExpr = "COALESCE(NULLIF(TRIM(u.account_type), ''), 'user')";
  
     // ── 4. Build the base query ────────────────────────────────────────────
+    // Driver-aware date helpers (MySQL INTERVAL/TIMESTAMPDIFF/DATE_FORMAT vs
+    // PostgreSQL INTERVAL/EXTRACT(EPOCH)/to_char).
+    $oneMinuteAgo = DbDialect::nowMinusInterval(1, 'MINUTE');
+    $oneHourAgo   = DbDialect::nowMinusInterval(1, 'HOUR');
+    $oneDayAgo    = DbDialect::nowMinusInterval(24, 'HOUR');
+    $oneWeekAgo   = DbDialect::nowMinusInterval(7, 'DAY');
+    $diffMinutes  = DbDialect::timestampDiff('MINUTE', 'al.created_at', 'NOW()');
+    $diffHours    = DbDialect::timestampDiff('HOUR', 'al.created_at', 'NOW()');
+    $diffDays     = DbDialect::timestampDiff('DAY', 'al.created_at', 'NOW()');
+    $prettyDate   = DbDialect::dateFormat('al.created_at', '%b %d, %Y', 'Mon DD, YYYY');
+
     $query = DB::table('activity_logs as al')
         ->join('users as u', 'u.id', '=', 'al.user_id')
         ->whereNull('u.deleted_at')
@@ -742,27 +760,29 @@ class AnalyticsService
             al.details,
             ($statusExpr)                            AS derived_status,
             CASE
-                WHEN al.created_at >= NOW() - INTERVAL 1 MINUTE
+                WHEN al.created_at >= {$oneMinuteAgo}
                     THEN 'Just now'
-                WHEN al.created_at >= NOW() - INTERVAL 1 HOUR
-                    THEN CONCAT(TIMESTAMPDIFF(MINUTE, al.created_at, NOW()), ' minutes ago')
-                WHEN al.created_at >= NOW() - INTERVAL 24 HOUR
-                    THEN CONCAT(TIMESTAMPDIFF(HOUR,   al.created_at, NOW()), ' hours ago')
-                WHEN al.created_at >= NOW() - INTERVAL 7 DAY
-                    THEN CONCAT(TIMESTAMPDIFF(DAY,    al.created_at, NOW()), ' days ago')
-                ELSE DATE_FORMAT(al.created_at, '%b %d, %Y')
+                WHEN al.created_at >= {$oneHourAgo}
+                    THEN CONCAT({$diffMinutes}, ' minutes ago')
+                WHEN al.created_at >= {$oneDayAgo}
+                    THEN CONCAT({$diffHours}, ' hours ago')
+                WHEN al.created_at >= {$oneWeekAgo}
+                    THEN CONCAT({$diffDays}, ' days ago')
+                ELSE {$prettyDate}
             END AS time_ago
         ");
  
     // ── 5. Search filter ──────────────────────────────────────────────────
     if (!empty($filters['search'])) {
         $s = '%' . $filters['search'] . '%';
-        $query->where(function ($q) use ($s) {
+        // details is a JSON column — PostgreSQL needs a ::text cast for LIKE.
+        $detailsLike = DbDialect::likeableText('al.details') . ' LIKE ?';
+        $query->where(function ($q) use ($s, $detailsLike) {
             $q->where('u.first_name', 'like', $s)
               ->orWhere('u.last_name',  'like', $s)
               ->orWhere('u.email',      'like', $s)
               ->orWhere('al.action',    'like', $s)
-              ->orWhere('al.details',   'like', $s)
+              ->orWhereRaw($detailsLike, [$s])
               ->orWhereRaw("CONCAT(u.first_name, ' ', u.last_name) LIKE ?", [$s]);
         });
     }

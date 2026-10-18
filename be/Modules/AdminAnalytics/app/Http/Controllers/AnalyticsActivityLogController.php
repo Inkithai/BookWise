@@ -4,6 +4,7 @@ namespace Modules\AdminAnalytics\app\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
+use App\Support\DbDialect;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -211,10 +212,12 @@ class AnalyticsActivityLogController extends Controller
             $query = ActivityLog::query();
 
             if ($search) {
-                $query->where(function ($q) use ($search) {
+                // details is a JSON column — PostgreSQL needs a ::text cast for LIKE.
+                $detailsLike = DbDialect::likeableText('activity_logs.details') . ' LIKE ?';
+                $query->where(function ($q) use ($search, $detailsLike) {
                     $q->where('type', 'like', "%{$search}%")
                       ->orWhere('action', 'like', "%{$search}%")
-                      ->orWhere('details', 'like', "%{$search}%");
+                      ->orWhereRaw($detailsLike, ["%{$search}%"]);
                 });
             }
 
@@ -235,7 +238,7 @@ class AnalyticsActivityLogController extends Controller
                     'activity_logs.details',
                     'activity_logs.user_id',
                     'activity_logs.created_at',
-                    DB::raw('TRIM(CONCAT(COALESCE(users.first_name,""), " ", COALESCE(users.last_name,""))) as full_name'),
+                    DB::raw("TRIM(CONCAT(COALESCE(users.first_name,''), ' ', COALESCE(users.last_name,''))) as full_name"),
                     'users.user_name',
                     'users.email',
                     'users.account_type'

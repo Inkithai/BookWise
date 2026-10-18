@@ -12,11 +12,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->boolean('is_otp_verified')->default(1)->after('is_active');
-        });
+        if (!Schema::hasColumn('users', 'is_otp_verified')) {
+            Schema::table('users', function (Blueprint $table) {
+                // Use a boolean default (not int 1) so PostgreSQL accepts it.
+                $table->boolean('is_otp_verified')->default(true)->after('is_active');
+            });
+        }
 
-        DB::table('users')->update(['is_otp_verified' => 1]);
+        // Boolean true binds correctly on both MySQL (tinyint) and PostgreSQL (boolean).
+        DB::table('users')->update(['is_otp_verified' => true]);
     }
 
     /**

@@ -4,6 +4,7 @@ namespace Modules\AdminAnalytics\app\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Company;
+use App\Support\DbDialect;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -221,7 +222,7 @@ class AnalyticsController extends Controller
                 $monthlyQ->where('host_id', $hostId);
             }
             $monthly = $monthlyQ
-                ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, COUNT(*) as count, SUM(final_amount) as total')
+                ->selectRaw(DbDialect::monthKey('created_at') . ' as month, COUNT(*) as count, SUM(final_amount) as total')
                 ->groupBy('month')
                 ->orderBy('month')
                 ->get();
@@ -254,7 +255,7 @@ class AnalyticsController extends Controller
             $invQ->where('host_id', $hostId);
         }
         $invoiceRows = $invQ
-            ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, COUNT(*) as invoices')
+            ->selectRaw(DbDialect::monthKey('created_at') . ' as month, COUNT(*) as invoices')
             ->groupBy('month')
             ->orderBy('month')
             ->pluck('invoices', 'month')
@@ -266,7 +267,7 @@ class AnalyticsController extends Controller
             $userQ->where('host_id', $hostId);
         }
         $userRows = $userQ
-            ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, COUNT(*) as users')
+            ->selectRaw(DbDialect::monthKey('created_at') . ' as month, COUNT(*) as users')
             ->groupBy('month')
             ->orderBy('month')
             ->pluck('users', 'month')
@@ -281,7 +282,7 @@ class AnalyticsController extends Controller
             $clientQ->where('host_id', $hostId);
         }
         $clientRows = $clientQ
-            ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, COUNT(DISTINCT client_id) as clients')
+            ->selectRaw(DbDialect::monthKey('created_at') . ' as month, COUNT(DISTINCT client_id) as clients')
             ->groupBy('month')
             ->orderBy('month')
             ->pluck('clients', 'month')
@@ -293,7 +294,7 @@ class AnalyticsController extends Controller
             $subUserQ->where('host_id', $hostId);
         }
         $subUserRows = $subUserQ
-            ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, COUNT(*) as subUsers')
+            ->selectRaw(DbDialect::monthKey('created_at') . ' as month, COUNT(*) as "subUsers"')
             ->groupBy('month')
             ->orderBy('month')
             ->pluck('subUsers', 'month')
@@ -322,13 +323,13 @@ class AnalyticsController extends Controller
     {
         $q = Invoice::whereNull('invoices.deleted_at')
             ->join('users', 'invoices.created_by', '=', 'users.id')
-            ->selectRaw('
-                users.id as userId,
-                TRIM(CONCAT(COALESCE(users.first_name,""), " ", COALESCE(users.last_name,""))) as userName,
+            ->selectRaw("
+                users.id as \"userId\",
+                TRIM(CONCAT(COALESCE(users.first_name,''), ' ', COALESCE(users.last_name,''))) as \"userName\",
                 users.user_name,
-                COUNT(invoices.id) as invoiceCount,
-                SUM(invoices.final_amount) as totalAmount
-            ')
+                COUNT(invoices.id) as \"invoiceCount\",
+                SUM(invoices.final_amount) as \"totalAmount\"
+            ")
             ->groupBy('users.id', 'users.first_name', 'users.last_name', 'users.user_name')
             ->orderByDesc('invoiceCount');
 
@@ -364,13 +365,13 @@ class AnalyticsController extends Controller
 
         $perUserQ = Invoice::whereNull('invoices.deleted_at')
             ->join('users', 'invoices.created_by', '=', 'users.id')
-            ->selectRaw('
-                users.id as userId,
-                TRIM(CONCAT(COALESCE(users.first_name,""), " ", COALESCE(users.last_name,""))) as userName,
+            ->selectRaw("
+                users.id as \"userId\",
+                TRIM(CONCAT(COALESCE(users.first_name,''), ' ', COALESCE(users.last_name,''))) as \"userName\",
                 users.user_name, 
                 invoices.status, 
                 COUNT(*) as count
-            ')
+            ")
             ->groupBy('users.id', 'users.first_name', 'users.last_name', 'users.user_name', 'invoices.status');
 
         if ($hostId !== null) {

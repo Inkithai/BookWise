@@ -95,7 +95,7 @@ export interface AdminUser {
   phone_number?: string;
   is_active: number | string;
   is_active_label?: string;
-  is_otp_verified?: number | string;
+  is_otp_verified?: number | string | boolean;
   is_otp_verified_label?: string;
   profile_img?: string | null;
   account_type?: string;

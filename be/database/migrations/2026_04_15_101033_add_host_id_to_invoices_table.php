@@ -28,20 +28,37 @@ return new class extends Migration
         }
 
         // Backfill host_id from users table (only where NULL).
+        // Driver-aware: MySQL uses UPDATE..JOIN, PostgreSQL uses UPDATE..FROM.
         DB::transaction(function () {
-            DB::statement("
-                UPDATE invoices i
-                INNER JOIN users u ON i.created_by = u.id
-                SET i.host_id = u.host_id
-                WHERE i.host_id IS NULL
-                  AND i.created_by IS NOT NULL
-                  AND u.host_id IS NOT NULL
-            ");
+            if (DB::getDriverName() === 'pgsql') {
+                DB::statement("
+                    UPDATE invoices
+                    SET host_id = u.host_id
+                    FROM users u
+                    WHERE invoices.created_by = u.id
+                      AND invoices.host_id IS NULL
+                      AND invoices.created_by IS NOT NULL
+                      AND u.host_id IS NOT NULL
+                ");
+            } else {
+                DB::statement("
+                    UPDATE invoices i
+                    INNER JOIN users u ON i.created_by = u.id
+                    SET i.host_id = u.host_id
+                    WHERE i.host_id IS NULL
+                      AND i.created_by IS NOT NULL
+                      AND u.host_id IS NOT NULL
+                ");
+            }
         });
 
         // Composite index helps tenancy queries and soft deletes.
         try {
-            DB::statement('ALTER TABLE invoices ADD INDEX idx_invoices_host_deleted (host_id, deleted_at)');
+            if (DB::getDriverName() === 'pgsql') {
+                DB::statement('CREATE INDEX IF NOT EXISTS idx_invoices_host_deleted ON invoices (host_id, deleted_at)');
+            } else {
+                DB::statement('ALTER TABLE invoices ADD INDEX idx_invoices_host_deleted (host_id, deleted_at)');
+            }
         } catch (\Throwable $e) {
             // Ignore if index already exists.
         }
@@ -54,7 +71,11 @@ return new class extends Migration
         }
 
         try {
-            DB::statement('ALTER TABLE invoices DROP INDEX idx_invoices_host_deleted');
+            if (DB::getDriverName() === 'pgsql') {
+                DB::statement('DROP INDEX IF EXISTS idx_invoices_host_deleted');
+            } else {
+                DB::statement('ALTER TABLE invoices DROP INDEX idx_invoices_host_deleted');
+            }
         } catch (\Throwable $e) {
             // Ignore if index does not exist.
         }
