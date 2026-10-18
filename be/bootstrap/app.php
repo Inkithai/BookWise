@@ -14,8 +14,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Add CORS middleware to global stack to handle all requests
-        $middleware->prepend(\Fruitcake\Cors\HandleCors::class);
+        // Laravel ships CORS handling out of the box (Illuminate\Http\Middleware\HandleCors,
+        // backed by fruitcake/php-cors, a framework dependency) driven by config/cors.php.
+        // The standalone fruitcake/laravel-cors package is not installed / not needed.
+        $middleware->prepend(\Illuminate\Http\Middleware\HandleCors::class);
 
         $middleware->alias([
             'sync_app_api_key' => \App\Http\Middleware\RequireBookWiseApiKey::class,
